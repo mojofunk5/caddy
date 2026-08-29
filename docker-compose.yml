@@ -2,6 +2,10 @@ services:
   caddy:
     image: caddy:2
     restart: unless-stopped
+    # No swap on the VPS - a hard cap either way means a runaway proxy restarts loudly instead of
+    # silently starving the app/postgres containers sharing the box. 64m is generous headroom over
+    # real usage (~14MB idle, serving two low-traffic frontends).
+    mem_limit: 64m
     ports:
       - "80:80"
       - "443:443"
