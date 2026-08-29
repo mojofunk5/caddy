@@ -1,0 +1,25 @@
+name: Deploy
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Deploy to VPS
+        env:
+          DEPLOY_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          mkdir -p "$HOME/.ssh"
+          echo "$DEPLOY_KEY" > "$HOME/.ssh/deploy_key"
+          chmod 600 "$HOME/.ssh/deploy_key"
+          SSH_OPTS=(-i "$HOME/.ssh/deploy_key" -o StrictHostKeyChecking=accept-new)
+          ssh "${SSH_OPTS[@]}" root@213.171.213.90 "mkdir -p /opt/caddy"
+          scp "${SSH_OPTS[@]}" docker-compose.yml Caddyfile root@213.171.213.90:/opt/caddy/
+          ssh "${SSH_OPTS[@]}" root@213.171.213.90 \
+            "cd /opt/caddy && docker compose pull caddy && docker compose up -d caddy && docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile"

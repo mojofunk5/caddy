@@ -1,0 +1,31 @@
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy-data:/data
+      # ./current (a symlink each app's own deploy pipeline repoints on every release) lives inside
+      # /opt/<repo>, which is exactly where each of those directories is deployed - mounting the
+      # parent dir (not the symlink's resolved target directly) means Caddy re-resolves it on every
+      # request, so a symlink swap takes effect immediately, no restart needed.
+      - /opt/things-ui:/srv/things-ui:ro
+      - /opt/hobbs-ui:/srv/hobbs-ui:ro
+    networks:
+      # One shared Caddy for the whole VPS (not one per frontend repo - two Caddy containers can't
+      # both bind host ports 80/443). Needs both apps' networks to reach each by container name for
+      # the /api/* reverse proxies.
+      - things-net
+      - hobbs-net
+
+networks:
+  things-net:
+    external: true
+  hobbs-net:
+    external: true
+
+volumes:
+  caddy-data:
